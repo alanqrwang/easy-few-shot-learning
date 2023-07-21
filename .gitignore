@@ -140,3 +140,7 @@ data/omniglot-py
 
 # Tensorboard logs
 events.out.tfevents*
+
+job_out/*
+job_err/*
+wandb/*

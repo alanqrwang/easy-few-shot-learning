@@ -2,8 +2,8 @@ from pathlib import Path
 
 from .easy_set import EasySet
 
-CUB_SPECS_DIR = Path("data/CUB")
-
+# CUB_SPECS_DIR = Path("data/CUB")
+CUB_SPECS_DIR = Path("/home/aw847/easy-few-shot-learning/data/CUB")
 
 class CUB(EasySet):
     def __init__(self, split: str, **kwargs):

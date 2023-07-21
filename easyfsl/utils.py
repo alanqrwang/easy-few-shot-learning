@@ -11,6 +11,9 @@ from matplotlib import pyplot as plt
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import wandb
+import argparse
+import os
 
 from easyfsl.methods import FewShotClassifier
 
@@ -91,13 +94,17 @@ def evaluate_on_one_task(
     support_labels: Tensor,
     query_images: Tensor,
     query_labels: Tensor,
+    args
 ) -> Tuple[int, int]:
     """
     Returns the number of correct predictions of query labels, and the total number of
     predictions.
     """
     model.process_support_set(support_images, support_labels)
-    predictions = model(query_images).detach().data
+    if args.method == 'nw':
+        predictions = model(query_images, query_labels).detach().data
+    else:
+        predictions = model(query_images).detach().data
     number_of_correct_predictions = (
         (torch.max(predictions, 1)[1] == query_labels).sum().item()
     )
@@ -107,6 +114,7 @@ def evaluate_on_one_task(
 def evaluate(
     model: FewShotClassifier,
     data_loader: DataLoader,
+    args,
     device: str = "cuda",
     use_tqdm: bool = True,
     tqdm_prefix: Optional[str] = None,
@@ -151,6 +159,7 @@ def evaluate(
                     support_labels.to(device),
                     query_images.to(device),
                     query_labels.to(device),
+                    args
                 )
 
                 total_predictions += total
@@ -160,3 +169,29 @@ def evaluate(
                 tqdm_eval.set_postfix(accuracy=correct_predictions / total_predictions)
 
     return correct_predictions / total_predictions
+
+def initialize_wandb(config):
+    if config.wandb_api_key_path is not None:
+        with open(config.wandb_api_key_path, "r") as f:
+            os.environ["WANDB_API_KEY"] = f.read().strip()
+
+    wandb.init(**config.wandb_kwargs)
+    wandb.config.update(config)
+
+# Taken from https://sumit-ghosh.com/articles/parsing-dictionary-key-value-pairs-kwargs-argparse-python/
+class ParseKwargs(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, dict())
+        for value in values:
+            key, value_str = value.split('=')
+            if value_str.replace('-','').isnumeric():
+                processed_val = int(value_str)
+            elif value_str.replace('-','').replace('.','').isnumeric():
+                processed_val = float(value_str)
+            elif value_str in ['True', 'true']:
+                processed_val = True
+            elif value_str in ['False', 'false']:
+                processed_val = False
+            else:
+                processed_val = value_str
+            getattr(namespace, self.dest)[key] = processed_val

@@ -10,3 +10,4 @@ from .relation_networks import RelationNetworks
 from .simple_shot import SimpleShot
 from .tim import TIM
 from .transductive_finetuning import TransductiveFinetuning
+from .nw import NW
