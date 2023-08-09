@@ -170,6 +170,29 @@ def evaluate(
 
     return correct_predictions / total_predictions
 
+def compute_feature_mean(
+    dataloader: DataLoader, 
+    model: nn.Module, 
+    device: str = "cuda"):
+    """
+    Compute the mean of the support features.
+    Assumes the images are always first element of the batch.
+    Returns:
+        Tensor: shape (1, feature_dimension)
+    """
+    model.to(device)
+    model.eval()
+    all_embeddings = []
+    with torch.no_grad():
+        for batch in tqdm(
+            dataloader, unit="batch", desc="Compute feature mean"
+        ):
+            images = batch[0].to(device)
+            all_embeddings.append(model(images).detach().cpu())
+
+    concatenated_embeddings = torch.cat(all_embeddings)
+    return concatenated_embeddings.mean(dim=0).to(device)
+
 def initialize_wandb(config):
     if config.wandb_api_key_path is not None:
         with open(config.wandb_api_key_path, "r") as f:
